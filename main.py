@@ -157,7 +157,9 @@ def main():
         for log in tx_receipt['logs']:
             if log['topics'][0].hex() != '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef':
                 continue
-            if web3.to_checksum_address('0x' + log['topics'][2].hex()[-40:]) != wallet_address:
+            log_from = web3.to_checksum_address('0x' + log['topics'][1].hex()[-40:])
+            log_to = web3.to_checksum_address('0x' + log['topics'][2].hex()[-40:])
+            if log_from != "0x0000000000000000000000000000000000000000" and log_to != wallet_address:
                 continue
             # extract lp tokens just created
             lp_balance = int(log['data'].hex(), 16)
