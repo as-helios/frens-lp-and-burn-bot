@@ -13,7 +13,7 @@ load_dotenv()
 secret = os.getenv('SECRET')
 wallet_address = os.getenv('WALLET_ADDRESS')
 burn_address = os.getenv('BURN_ADDRESS')
-if not wallet_address or not burn_address or not secret or secret == 'changeme':
+if not wallet_address or not secret or secret == 'changeme':
     print("Setup your .env file")
     sys.exit()
 os.makedirs(log_dir := "./data/logs/", exist_ok=True)
@@ -153,6 +153,10 @@ def main():
         else:
             logging.info("Added LP for {} and FRENS ({})".format(token_symbol, tx_hash.hex()))
 
+        # skip if no intention to send/burn lp tokens
+        if wallet_address == burn_address or not burn_address:
+            continue
+            
         # transfer lp tokens to burn address
         for log in tx_receipt['logs']:
             if log['topics'][0].hex() != '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef':
