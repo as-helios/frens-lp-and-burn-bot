@@ -4,10 +4,13 @@ import sys
 import time
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from datetime import datetime, UTC
 
 from dotenv import load_dotenv
 from web3 import Web3
 from web3_multi_provider import FallbackProvider
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 load_dotenv()
 secret = os.getenv('SECRET')
@@ -31,6 +34,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
+logging.getLogger('apscheduler').setLevel(logging.ERROR)
 os.makedirs("data/wallets", exist_ok=True)
 wallet_keystore = "./data/wallets/{}/keystore".format(wallet_address)
 if not os.path.isfile(wallet_keystore):
@@ -156,7 +160,7 @@ def main():
         # skip if no intention to send/burn lp tokens
         if wallet_address == burn_address or not burn_address:
             continue
-            
+
         # transfer lp tokens to burn address
         for log in tx_receipt['logs']:
             if log['topics'][0].hex() != '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef':
@@ -196,5 +200,18 @@ if __name__ == '__main__':
     print("-" * 50)
     print("Frens LP and Burn")
     print("-" * 50)
-    main()
-    print("-" * 50)
+    # setup scheduler to run at midnight every day
+    scheduler = BackgroundScheduler()
+    scheduler.start()
+    cron = CronTrigger(day="*", hour="0", minute="0", second="0")
+    scheduler.add_job(main, trigger=cron)
+    # display the next schedule run time and how many hours until it triggers
+    next_run = cron.get_next_fire_time(datetime.now(UTC), datetime.now(UTC))
+    next_time = next_run.timestamp()
+    current_time = datetime.now().timestamp()
+    print("Next scheduled run: {} (in {} hours)".format(next_run.strftime('%Y-%m-%d %H:%M:%S'), round((next_time - current_time) / 60 / 60, 2)))
+    try:
+        while True:
+            time.sleep(5)
+    except KeyboardInterrupt:
+        print("-" * 50)
